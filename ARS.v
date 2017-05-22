@@ -1,8 +1,8 @@
 Require Import List Ensembles Finite_sets_facts Relations Program Omega.
 
 Section ARS.
-  Variable A : Set.
-  Variable R : A -> A -> Prop.
+  Variable A : Type.
+  Variable R : relation A.
 
   Inductive nfold_composition : nat -> A -> A -> Prop :=
     | nfold_composition_ident x :
@@ -42,6 +42,12 @@ Section ARS.
     R a1 a2 ->
     R a1 a3 ->
     joinable a2 a3.
+  Definition diamond_property :=
+    forall x y y',
+    R x y ->
+    R x y' ->
+    exists z,
+    R y z /\ R y' z.
 
   Definition terminating :=
     well_founded (fun x y => R y x).
@@ -63,7 +69,7 @@ Section ARS.
     eauto.
   Qed.
 
-  Lemma confluent_impl_semi_confluent :
+  Corollary confluent_impl_semi_confluent :
     confluent ->
     semi_confluent.
   Proof.
@@ -72,7 +78,7 @@ Section ARS.
     eauto.
   Qed.
 
-  Lemma semi_confluent_impl_Church_Rosser :
+  Theorem semi_confluent_impl_Church_Rosser :
     semi_confluent ->
     Church_Rosser.
   Proof.
@@ -81,6 +87,25 @@ Section ARS.
     induction Hrstc as [| ? ? ? [ | ] ? [w []]]; simpl; eauto.
     - edestruct Hsc as [? []]; eauto.
   Qed.
+
+  Definition semi_confluent_impl_confluent H :=
+    Church_Rosser_impl_confluent (semi_confluent_impl_Church_Rosser H).
+    
+  Lemma diamond_property_impl_semi_confluent :
+    diamond_property ->
+    semi_confluent.
+  Proof.
+    intros Hdiamond ? y ? ? Hrtc.
+    generalize dependent y.
+    apply clos_rt_rt1n in Hrtc.
+    induction Hrtc; simpl in *; eauto.
+    - intros ? H'.
+      destruct (Hdiamond _ _ _ H H') as [? [H'']].
+      destruct (IHHrtc _ H'') as [? []]; eauto.
+  Qed.
+    
+  Definition diamond_property_impl_confluent H :=
+    semi_confluent_impl_confluent (diamond_property_impl_semi_confluent H).
 
   Corollary confluent_normal_form :
     confluent ->
@@ -362,6 +387,28 @@ Section ARS.
     eauto.
   Qed.
 End ARS.
+
+Lemma clos_rt_impl A (R R' : relation A) x y:
+  (forall x y, R x y -> R' x y) ->
+  clos_refl_trans _ R x y ->
+  clos_refl_trans _ R' x y.
+Proof.
+  Local Hint Constructors clos_refl_trans.
+  induction 2; eauto.
+Qed.
+
+Lemma confluent_same_relation A R R' :
+  confluent A R ->
+  (forall x y, clos_refl_trans _ R x y <-> clos_refl_trans _ R' x y) ->
+  confluent A R'.
+Proof.
+  intros Hconfluent Hsame x y y' Hrtc1 Hrtc2.
+  apply Hsame in Hrtc1.
+  apply Hsame in Hrtc2.
+  destruct (Hconfluent _ _ _ Hrtc1 Hrtc2) as [z []].
+  exists z.
+  split; apply Hsame; eauto.
+Qed.
 
 Lemma terminating_transitive_closure A R :
   terminating A R <-> terminating _ (clos_trans _ R).
