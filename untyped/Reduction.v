@@ -14,12 +14,18 @@ Inductive red : relation term :=
       red t t' ->
       red (tabs t) (tabs t').
 Hint Constructors red.
-Local Hint Constructors clos_refl_trans.
+Local Hint Constructors clos_refl_trans clos_refl_sym_trans.
 
 Lemma ered_appabs t11 t2 t :
   t = t11.[t2/] ->
   red (tapp (tabs t11) t2) t.
 Proof. intros. subst. econstructor. Qed.
+
+Lemma ered_appr t1 t2 t2' t' :
+  red t2 t2' ->
+  t' = tapp t1 t2' ->
+  red (tapp t1 t2) t'.
+Proof. intros. subst. eauto. Qed.
 
 Lemma red_abs_multi t t' :
   clos_refl_trans _ red t t' ->
@@ -36,7 +42,18 @@ Lemma red_appr_multi t1 t2 t2' :
   clos_refl_trans _ red (tapp t1 t2) (tapp t1 t2').
 Proof. induction 1; eauto. Qed.
 
-Hint Resolve red_abs_multi red_appl_multi red_appr_multi.
+Lemma red_app_equiv t1 t1' t2 t2' :
+  clos_refl_sym_trans _ red t1 t1' ->
+  clos_refl_sym_trans _ red t2 t2' ->
+  clos_refl_sym_trans _ red (tapp t1 t2) (tapp t1' t2').
+Proof.
+  intros Hrstc Hrstc'.
+  apply rst_trans with (y := tapp t1' t2).
+  - induction Hrstc; eauto.
+  - induction Hrstc'; eauto.
+Qed.
+
+Hint Resolve red_abs_multi red_appl_multi red_appr_multi red_app_equiv.
 
 Lemma red_var_multi_inv x t :
   clos_refl_trans _ red (tvar x) t ->
