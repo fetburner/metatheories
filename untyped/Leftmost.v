@@ -2,7 +2,7 @@ Require Import Autosubst.Autosubst ARS.ARS.
 Require Import Relations.
 Require Import Term Reduction.
 
-Definition neutral t :=
+Notation neutral t :=
   match t with tabs _ => False | _ => True end.
 
 Inductive leftmost : relation term :=
