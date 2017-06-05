@@ -1,6 +1,6 @@
 Require Import Autosubst.Autosubst.
 Require Import Relations Classical.
-Require Import Term Reduction.
+From Metatheories Require Import Term Reduction.
 
 Definition Ycombinator :=
   let w := tabs (tapp (tvar 1) (tapp (tvar 0) (tvar 0))) in

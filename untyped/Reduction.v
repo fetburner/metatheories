@@ -1,6 +1,6 @@
-Require Import Autosubst.Autosubst ARS.ARS.
+Require Import Autosubst.Autosubst.
 Require Import Relations.
-Require Import Term.
+From Metatheories Require Import ARS Term.
 
 Inductive red : relation term :=
   | red_appabs t11 t2 : red (tapp (tabs t11) t2) (t11.[t2/])

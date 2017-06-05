@@ -1,6 +1,6 @@
 Require Import Autosubst.Autosubst.
 Require Import Relations.
-Require Import Term Reduction Leftmost.
+From Metatheories Require Import Term Reduction Leftmost.
 
 Inductive cbn : relation term :=
   | cbn_appabs t11 t2 : cbn (tapp (tabs t11) t2) (t11.[t2/])

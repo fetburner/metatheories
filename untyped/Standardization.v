@@ -1,6 +1,6 @@
-Require Import Autosubst.Autosubst ARS.ARS.
+Require Import Autosubst.Autosubst.
 Require Import Relations.
-Require Import Term Reduction Leftmost CBN.
+From Metatheories Require Import ARS Term Reduction Leftmost CBN.
 
 Inductive st : relation term :=
   | st_var t x :

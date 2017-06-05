@@ -1,6 +1,6 @@
-Require Import Autosubst.Autosubst ARS.ARS.
+Require Import Autosubst.Autosubst.
 Require Import Relations.
-Require Import Term Reduction.
+From Metatheories Require Import ARS Term Reduction.
 
 Notation neutral t :=
   match t with tabs _ => False | _ => True end.
