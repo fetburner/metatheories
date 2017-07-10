@@ -8,8 +8,19 @@ Inductive cbn : relation term :=
       cbn t1 t1' ->
       cbn (tapp t1 t2) (tapp t1' t2).
 
+Inductive cbn_internal : relation term :=
+  | cbn_internal_abs t t' :
+      red t t' ->
+      cbn_internal (tabs t) (tabs t')
+  | cbn_internal_appl t1 t1' t2 :
+      cbn_internal t1 t1' ->
+      cbn_internal (tapp t1 t2) (tapp t1' t2)
+  | cbn_internal_appr t1 t2 t2' :
+      red t2 t2' ->
+      cbn_internal (tapp t1 t2) (tapp t1 t2').
+
 Hint Constructors cbn.
-Local Hint Constructors clos_refl_trans.
+Local Hint Constructors clos_refl_trans cbn_internal.
 
 Lemma ecbn_appabs t11 t2 t' :
   t' = t11.[t2/] ->
@@ -70,5 +81,38 @@ Proof.
 Qed.
 Hint Resolve cbn_leftmost.
 
+Lemma cbn_internal_red t t' :
+  cbn_internal t t' ->
+  red t t'.
+Proof.
+  induction 1; eauto.
+Qed.
+Hint Resolve cbn_internal_red.
+
 Lemma cbn_det t t' t'' : cbn t t' -> cbn t t'' -> t' = t''.
 Proof. intros ? ?. eapply leftmost_det; eauto. Qed.
+
+Lemma cbn_or_internal t t' :
+  red t t' ->
+  cbn t t' \/ cbn_internal t t'.
+Proof.
+  induction 1; eauto.
+  - destruct IHred; eauto.
+Qed.
+
+Lemma cbn_internal_swap t1 t2 :
+  cbn_internal t1 t2 ->
+  forall t3,
+    cbn t2 t3 ->
+    exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
+Proof.
+  Local Hint Resolve red_subst.
+  induction 1; inversion 1; subst.
+  - inversion H; subst; eauto.
+  - edestruct IHcbn_internal as [? []]; eauto.
+  - eexists.
+    split; eauto.
+    apply red_subst_multi; eauto.
+    intros [| ?]; simpl; eauto.
+  - eauto 7.
+Qed.
