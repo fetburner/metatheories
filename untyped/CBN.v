@@ -116,3 +116,17 @@ Proof.
     intros [| ?]; simpl; eauto.
   - eauto 7.
 Qed.
+
+Corollary cbn_internal_multi_swap t1 t2 :
+  clos_refl_trans _ cbn_internal t1 t2 ->
+  forall t3,
+    cbn t2 t3 ->
+    exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
+Proof.
+  intros Hrt.
+  apply clos_rt_rt1n in Hrt.
+  induction Hrt; eauto.
+  - intros ? ?.
+    edestruct IHHrt as [? [? ?]]; eauto.
+    edestruct cbn_internal_swap as [? [? ?]]; eauto.
+Qed.
