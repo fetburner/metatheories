@@ -90,7 +90,7 @@ Section ARS.
 
   Definition semi_confluent_impl_confluent H :=
     Church_Rosser_impl_confluent (semi_confluent_impl_Church_Rosser H).
-    
+
   Lemma diamond_property_impl_semi_confluent :
     diamond_property ->
     semi_confluent.
@@ -103,7 +103,7 @@ Section ARS.
       destruct (Hdiamond _ _ _ H H') as [? [H'']].
       destruct (IHHrtc _ H'') as [? []]; eauto.
   Qed.
-    
+
   Definition diamond_property_impl_confluent H :=
     semi_confluent_impl_confluent (diamond_property_impl_semi_confluent H).
 
@@ -385,6 +385,20 @@ Section ARS.
     assert (HRs1''5 : clos_refl_trans_1n _ R a1'' a5) by eauto.
     destruct (IHa1 _ HR11'' _ HRs1''3 _ HRs1''5) as [? []].
     eauto.
+  Qed.
+
+  Lemma normalizing_and_deterministic_impl_terminating x y :
+    (forall x y z, R x y -> R x z -> y = z) ->
+    clos_refl_trans _ R x y ->
+    in_normal_form y ->
+    Acc (fun y x => R x y) x.
+  Proof.
+    intros Hdet Hrt Hnf.
+    apply clos_rt_rt1n in Hrt.
+    induction Hrt; constructor; intros ? HR.
+    - destruct (Hnf _ HR).
+    - rewrite (Hdet _ _ _ H HR) in *.
+      eauto.
   Qed.
 End ARS.
 

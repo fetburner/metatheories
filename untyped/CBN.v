@@ -8,19 +8,8 @@ Inductive cbn : relation term :=
       cbn t1 t1' ->
       cbn (tapp t1 t2) (tapp t1' t2).
 
-Inductive cbn_internal : relation term :=
-  | cbn_internal_abs t t' :
-      red t t' ->
-      cbn_internal (tabs t) (tabs t')
-  | cbn_internal_appl t1 t1' t2 :
-      cbn_internal t1 t1' ->
-      cbn_internal (tapp t1 t2) (tapp t1' t2)
-  | cbn_internal_appr t1 t2 t2' :
-      red t2 t2' ->
-      cbn_internal (tapp t1 t2) (tapp t1 t2').
-
 Hint Constructors cbn.
-Local Hint Constructors clos_refl_trans cbn_internal.
+Local Hint Constructors clos_refl_trans.
 
 Lemma ecbn_appabs t11 t2 t' :
   t' = t11.[t2/] ->
@@ -81,52 +70,90 @@ Proof.
 Qed.
 Hint Resolve cbn_leftmost.
 
-Lemma cbn_internal_red t t' :
-  cbn_internal t t' ->
-  red t t'.
-Proof.
-  induction 1; eauto.
-Qed.
-Hint Resolve cbn_internal_red.
-
 Lemma cbn_det t t' t'' : cbn t t' -> cbn t t'' -> t' = t''.
 Proof. intros ? ?. eapply leftmost_det; eauto. Qed.
 
-Lemma cbn_or_internal t t' :
-  red t t' ->
-  cbn t t' \/ cbn_internal t t'.
-Proof.
-  induction 1; eauto.
-  - destruct IHred; eauto.
-Qed.
 
-Lemma cbn_internal_swap t1 t2 :
-  cbn_internal t1 t2 ->
-  forall t3,
-    cbn t2 t3 ->
-    exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
-Proof.
-  Local Hint Resolve red_subst.
-  induction 1; inversion 1; subst.
-  - inversion H; subst; eauto.
-  - edestruct IHcbn_internal as [? []]; eauto.
-  - eexists.
-    split; eauto.
-    apply red_subst_multi; eauto.
-    intros [| ?]; simpl; eauto.
-  - eauto 7.
-Qed.
+Section CBNInternal.
+  Inductive internal : relation term :=
+  | internal_abs t t' :
+      red t t' ->
+      internal (tabs t) (tabs t')
+  | internal_appl t1 t1' t2 :
+      internal t1 t1' ->
+      internal (tapp t1 t2) (tapp t1' t2)
+  | internal_appr t1 t2 t2' :
+      red t2 t2' ->
+      internal (tapp t1 t2) (tapp t1 t2').
+  Local Hint Constructors internal.
 
-Corollary cbn_internal_multi_swap t1 t2 :
-  clos_refl_trans _ cbn_internal t1 t2 ->
-  forall t3,
-    cbn t2 t3 ->
-    exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
-Proof.
-  intros Hrt.
-  apply clos_rt_rt1n in Hrt.
-  induction Hrt; eauto.
-  - intros ? ?.
-    edestruct IHHrt as [? [? ?]]; eauto.
-    edestruct cbn_internal_swap as [? [? ?]]; eauto.
-Qed.
+  Lemma internal_red t t' :
+    internal t t' ->
+    red t t'.
+  Proof. induction 1; eauto. Qed.
+  Hint Resolve internal_red.
+
+  Lemma cbn_or_internal t t' :
+    red t t' ->
+    cbn t t' \/ internal t t'.
+  Proof.
+    induction 1; eauto.
+    - destruct IHred; eauto.
+  Qed.
+
+  Lemma internal_swap t1 t2 :
+    internal t1 t2 ->
+    forall t3,
+      cbn t2 t3 ->
+      exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
+  Proof.
+    Local Hint Resolve red_subst.
+    induction 1; inversion 1; subst.
+    - inversion H; subst; eauto.
+    - edestruct IHinternal as [? []]; eauto.
+    - eexists.
+      split; eauto.
+      apply red_subst_multi; eauto.
+      intros [| ?]; simpl; eauto.
+    - eauto 7.
+  Qed.
+
+  Corollary red_swap t1 t2 :
+    red t1 t2 ->
+    forall t3,
+      cbn t2 t3 ->
+      exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
+    Proof.
+      intros Hred ? Hcbn.
+      destruct (cbn_or_internal _ _ Hred); eauto 6.
+      eapply internal_swap; eauto.
+    Qed.
+
+  Lemma red_multi_swap t1 t2 :
+    clos_refl_trans _ red t1 t2 ->
+    forall t3,
+      cbn t2 t3 ->
+      exists t2', cbn t1 t2' /\ clos_refl_trans _ red t2' t3.
+  Proof.
+    intros Hrt.
+    apply clos_rt_rt1n in Hrt.
+    induction Hrt; eauto.
+    - intros ? ?.
+      edestruct IHHrt as [? [? ?]]; eauto.
+      edestruct red_swap as [? [? ?]]; eauto.
+  Qed.
+
+  Theorem quasi_cbn_theorem t :
+    Acc (fun t2 t1 => cbn t1 t2) t ->
+    Acc (fun t3 t1 => exists t2, clos_refl_trans _ red t1 t2 /\ cbn t2 t3) t.
+  Proof.
+    induction 1 as [t ? IH].
+    constructor.
+    intros ? [? [Hred Hcbn]].
+    destruct (red_multi_swap _ _ Hred _ Hcbn) as [? [Hcbn']].
+    destruct (IH _ Hcbn') as [IH'].
+    constructor.
+    intros ? [? [? ?]].
+    eauto.
+  Qed.
+End CBNInternal.
