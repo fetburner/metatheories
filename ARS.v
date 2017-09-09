@@ -400,6 +400,15 @@ Section ARS.
     - rewrite (Hdet _ _ _ H HR) in *.
       eauto.
   Qed.
+
+  Lemma strip_lemma x z :
+    clos_refl_trans _ R x z ->
+    x = z \/ exists y, R x y /\ clos_refl_trans _ R y z.
+  Proof.
+    intros Hrt.
+    apply clos_rt_rt1n in Hrt.
+    inversion Hrt; subst; eauto.
+  Qed.
 End ARS.
 
 Lemma clos_rt_impl A (R R' : relation A) x y:

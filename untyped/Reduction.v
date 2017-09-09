@@ -105,6 +105,21 @@ Proof.
     autosubst.
 Qed.
 
+Lemma neutral_red t t' :
+  neutral t' ->
+  red t t' ->
+  neutral t.
+Proof. induction 2; simpl; eauto. Qed.
+
+Lemma neutral_red_multi t t' :
+  neutral t' ->
+  clos_refl_trans _ red t t' ->
+  neutral t.
+Proof.
+  induction 2; eauto.
+  eapply neutral_red; eauto.
+Qed.
+
 Lemma red_subst_multi_aux t : forall s s',
   (forall x, clos_refl_trans _ red (s x) (s' x)) ->
   clos_refl_trans _ red t.[s] t.[s'].
@@ -130,7 +145,7 @@ Proof.
   - apply clos_rt_rt1n in Hrt.
     induction Hrt; eauto.
 Qed.
-    
+
 Section Confluence.
   Inductive pr : relation term :=
     | pr_appabs t11 t11' t2 t2' :
@@ -153,7 +168,7 @@ Section Confluence.
     t' = t11'.[t2'/] ->
     pr (tapp (tabs t11) t2) t'.
   Proof. intros. subst. eauto. Qed.
-    
+
   Lemma pr_refl t : pr t t.
   Proof. induction t; eauto. Qed.
   Local Hint Resolve pr_refl.
@@ -207,7 +222,7 @@ Section Confluence.
       + apply pr_refl.
       + apply pr_rename. eauto.
   Qed.
-      
+
   Fixpoint development t :=
     match t with
     | tvar x => tvar x

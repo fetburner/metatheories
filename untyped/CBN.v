@@ -1,6 +1,6 @@
 Require Import Autosubst.Autosubst.
 Require Import Relations.
-From Metatheories Require Import Term Reduction Leftmost.
+From Metatheories Require Import ARS Term Reduction Leftmost.
 
 Inductive cbn : relation term :=
   | cbn_appabs t11 t2 : cbn (tapp (tabs t11) t2) (t11.[t2/])
@@ -66,13 +66,22 @@ Hint Resolve cbn_multi_subst.
 Lemma cbn_leftmost t t' : cbn t t' -> leftmost t t'.
 Proof.
   induction 1; eauto.
-  - inversion H; subst; eauto.
+  - destruct (neutral_dec t1) as [[] |]; subst; eauto.
+    inversion H.
 Qed.
-Hint Resolve cbn_leftmost.
+
+Corollary cbn_multi_leftmost_multi t t' :
+  clos_refl_trans _ cbn t t' ->
+  clos_refl_trans _ leftmost t t'.
+Proof.
+  apply clos_rt_impl.
+  apply cbn_leftmost.
+Qed.
+
+Hint Resolve cbn_leftmost cbn_multi_leftmost_multi.
 
 Lemma cbn_det t t' t'' : cbn t t' -> cbn t t'' -> t' = t''.
 Proof. intros ? ?. eapply leftmost_det; eauto. Qed.
-
 
 Section CBNInternal.
   Inductive internal : relation term :=
@@ -101,7 +110,7 @@ Section CBNInternal.
     - destruct IHred; eauto.
   Qed.
 
-  Lemma internal_swap t1 t2 :
+  Lemma internal_cbn_swap t1 t2 :
     internal t1 t2 ->
     forall t3,
       cbn t2 t3 ->
@@ -118,7 +127,7 @@ Section CBNInternal.
     - eauto 7.
   Qed.
 
-  Corollary red_swap t1 t2 :
+  Corollary red_cbn_swap t1 t2 :
     red t1 t2 ->
     forall t3,
       cbn t2 t3 ->
@@ -126,10 +135,10 @@ Section CBNInternal.
     Proof.
       intros Hred ? Hcbn.
       destruct (cbn_or_internal _ _ Hred); eauto 6.
-      eapply internal_swap; eauto.
+      eapply internal_cbn_swap; eauto.
     Qed.
 
-  Lemma red_multi_swap t1 t2 :
+  Lemma red_multi_cbn_swap t1 t2 :
     clos_refl_trans _ red t1 t2 ->
     forall t3,
       cbn t2 t3 ->
@@ -140,7 +149,7 @@ Section CBNInternal.
     induction Hrt; eauto.
     - intros ? ?.
       edestruct IHHrt as [? [? ?]]; eauto.
-      edestruct red_swap as [? [? ?]]; eauto.
+      edestruct red_cbn_swap as [? [? ?]]; eauto.
   Qed.
 
   Theorem quasi_cbn_theorem t :
@@ -150,7 +159,7 @@ Section CBNInternal.
     induction 1 as [t ? IH].
     constructor.
     intros ? [? [Hred Hcbn]].
-    destruct (red_multi_swap _ _ Hred _ Hcbn) as [? [Hcbn']].
+    destruct (red_multi_cbn_swap _ _ Hred _ Hcbn) as [? [Hcbn']].
     destruct (IH _ Hcbn') as [IH'].
     constructor.
     intros ? [? [? ?]].

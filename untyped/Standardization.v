@@ -104,6 +104,12 @@ Proof.
   - apply st_refl.
 Qed.
 
+Lemma st_beta_multi t t' :
+  st t t' ->
+  clos_refl_trans _ red t t'.
+Proof. induction 1; eauto 7. Qed.
+Hint Resolve st_beta_multi.
+
 Theorem call_by_name_property t t1 :
   clos_refl_trans _ red t (tabs t1) ->
   exists t1', clos_refl_trans _ cbn t (tabs t1').
@@ -114,7 +120,7 @@ Proof.
   eauto.
 Qed.
 
-Theorem leftmost_property t t' :
+Theorem leftmost_theorem t t' :
   in_normal_form _ red t' ->
   clos_refl_trans _ red t t' ->
   clos_refl_trans _ leftmost t t'.
@@ -123,21 +129,58 @@ Proof.
   unfold not.
   intros ? Hred.
   apply beta_multi_st in Hred.
-  induction Hred.
-  - eapply clos_rt_impl; try eassumption; eauto.
-  - eapply rt_trans.
-    + eapply clos_rt_impl; try eassumption; eauto.
-    + apply rt_trans with (y := tapp t1' t2).
-      * { apply leftmost_appl_multi; try eassumption; eauto.
-          - destruct t1; eauto.
-            apply st_abs_inv in Hred1.
-            destruct Hred1; subst.
-            eauto.
-          - destruct t1'; eauto. }
-      * apply leftmost_appr_multi; try eassumption; unfold in_normal_form; unfold not; eauto.
-        destruct t1'; eauto.
-  - eapply rt_trans.
-    + apply clos_rt_impl with (R := cbn); eauto.
-    + apply leftmost_abs_multi.
-      eauto.
+  induction Hred; eauto 7.
+  eapply rt_trans.
+  - apply cbn_multi_leftmost_multi. eauto.
+  - destruct (neutral_dec t1') as [[]|]; subst.
+    + edestruct H; eauto.
+    + destruct (neutral_dec t1) as [[]|]; subst; eauto.
+        * destruct (st_abs_inv _ _ Hred1) as []; subst.
+           edestruct H; eauto.
+        * { apply rt_trans with (y := tapp t1' t2).
+             - apply leftmost_appl_multi; eauto.
+             - apply leftmost_appr_multi; unfold in_normal_form; unfold not; eauto. }
+Qed.
+
+Lemma red_multi_leftmost_swap t1 t2 t3 :
+  clos_refl_trans _ red t1 t2 ->
+  leftmost t2 t3 ->
+  exists t2', leftmost t1 t2' /\ clos_refl_trans _ red t2' t3.
+Proof.
+  intros Hrt Hleftmost.
+  apply beta_multi_st in Hrt.
+  generalize dependent t1.
+  induction Hleftmost; inversion 1; subst.
+  - inversion H3; subst.
+    destruct (strip_lemma _ _ _ _ H1) as [|[? []]]; subst; eauto 7.
+    destruct (strip_lemma _ _ _ _ H0) as [|[? []]]; subst; eexists; split; eauto.
+    apply red_subst_multi; eauto.
+    intros [| ?]; simpl; eauto.
+  - destruct (strip_lemma _ _ _ _ H2) as [|[? []]]; subst.
+    + edestruct IHHleftmost as [? []]; eauto.
+       eapply neutral_red_multi in H; eauto 8.
+    + destruct (neutral_dec t0) as [[]|]; subst; eauto 8.
+  - destruct (strip_lemma _ _ _ _ H3) as [|[? []]]; subst; eauto 8.
+    edestruct IHHleftmost as [? []]; eauto.
+    destruct (strip_lemma _ _ _ _ (leftmost_theorem _ _ H0 (st_beta_multi _ _ H5))) as [|[? []]]; subst; eauto.
+    apply neutral_red_multi with (t := t3) in H; eauto.
+    eexists.
+    split; eauto.
+    apply rt_trans with (y := tapp t1 t4); eauto 6.
+  - destruct (strip_lemma _ _ _ _ H0) as [|[? []]]; subst; eauto 8.
+    edestruct IHHleftmost as [? []]; eauto.
+Qed.
+
+Theorem quasi_leftmost_theorem t :
+  Acc (fun t2 t1 => leftmost t1 t2) t ->
+  Acc (fun t3 t1 => exists t2, clos_refl_trans _ red t1 t2 /\ leftmost t2 t3) t.
+Proof.
+  induction 1 as [t ? IH].
+  constructor.
+  intros ? [? [Hred Hleftmost]].
+  destruct (red_multi_leftmost_swap _ _ _ Hred Hleftmost) as [? [Hleftmost']].
+  destruct (IH _ Hleftmost') as [IH'].
+  constructor.
+  intros ? [? [? ?]].
+  eauto.
 Qed.

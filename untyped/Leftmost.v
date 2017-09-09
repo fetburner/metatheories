@@ -2,9 +2,6 @@ Require Import Autosubst.Autosubst.
 Require Import Relations.
 From Metatheories Require Import ARS Term Reduction.
 
-Notation neutral t :=
-  match t with tabs _ => False | _ => True end.
-
 Inductive leftmost : relation term :=
   | leftmost_appabs t11 t2 : leftmost (tapp (tabs t11) t2) (t11.[t2/])
   | leftmost_appl t1 t1' t2 :
@@ -53,17 +50,23 @@ Lemma leftmost_appl_multi t1 t1' t2 :
   clos_refl_trans _ leftmost (tapp t1 t2) (tapp t1' t2).
 Proof.
   induction 3; eauto.
-  - assert (neutral y).
-    { destruct y; simpl; eauto.
-      - destruct (leftmost_abs_multi_inv _ _ H1_0 _ eq_refl); subst; simpl in *.
-        eauto. }
-    eauto.
+  destruct (neutral_dec y) as [[]|]; subst; eauto.
+  destruct (leftmost_abs_multi_inv _ _ H1_0 _ eq_refl); subst; simpl in *.
+  eauto.
 Qed.
 
 Lemma leftmost_red t t' : leftmost t t' -> red t t'.
 Proof. induction 1; eauto. Qed.
 
-Hint Resolve leftmost_abs_multi leftmost_red.
+Corollary leftmost_multi_red_multi t t' :
+  clos_refl_trans _ leftmost t t' ->
+  clos_refl_trans _ red t t'.
+Proof.
+  apply clos_rt_impl.
+  apply leftmost_red.
+Qed.
+
+Hint Resolve leftmost_abs_multi leftmost_red leftmost_multi_red_multi.
 
 Lemma leftmost_det t t' :
   leftmost t t' ->
@@ -81,4 +84,3 @@ Proof.
     f_equal;
     solve [ eauto | exfalso; eauto ].
 Qed.
-

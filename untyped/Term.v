@@ -9,3 +9,10 @@ Instance Ids_term : Ids term. derive. Defined.
 Instance Rename_term : Rename term. derive. Defined.
 Instance Subst_term : Subst term. derive. Defined.
 Instance SubstLemmas_term : SubstLemmas term. derive. Qed.
+
+Definition neutral t :=
+  match t with tabs _ => False | _ => True end.
+
+Lemma neutral_dec t :
+  { t' | t = tabs t' } + { (neutral t) }.
+Proof. destruct t; simpl; eauto. Defined.
